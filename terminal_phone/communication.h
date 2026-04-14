@@ -17,7 +17,7 @@ class Communication
     Communication();
 
     int postToWeb(const String& path, const String& message);
-    String pollFromWeb();
+    String pollFromWeb(const String& path);
 };
 
 #endif

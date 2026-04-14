@@ -25,15 +25,20 @@ class Terminal
     int _posx;
     int _posy;
 
+    bool _autoRedraw = true;
+
     void allocBuffers();
     void freeBuffers();
-    void _redraw();
     void scrollUp();
 
   public:
     Terminal(int posx, int posy, int maxWidth, int maxHeight);
     ~Terminal();
 
+    void setAutoRedraw(bool enabled) { _autoRedraw = enabled; }
+  
+    void redraw();
+    
     void reinit(int posx, int posy, int maxWidth, int maxHeight);
 
     void printChar(char c);

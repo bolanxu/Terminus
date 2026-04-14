@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include "settings.h"
+#include <TFT_eSPI.h>
 
 class Terminal;
 
@@ -16,11 +17,13 @@ class Chat
     String _inputText;
     String _currentContact;
 
+    void updateInfo(const String& status, uint16_t color = TFT_CYAN);
+
   public:
-    Chat(const String& contact, Terminal* info, Terminal* messages, Terminal* sendBar);
+    Chat(const char* contact, Terminal* info, Terminal* messages, Terminal* sendBar);
     ~Chat();
 
-    void displayHistory(const String& contact);
+    void displayHistory(const char* contact);
     void updateKey(char c);
     void updateMsgs();
 };

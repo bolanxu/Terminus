@@ -1,6 +1,8 @@
 #include "commands.h"
 #include "globals.h"
 #include "chat.h"
+#include "terminal.h"
+#include "sms.h"
 
 Command commandTable[] =
 {
@@ -213,7 +215,7 @@ void handle_sms(String args)
     String contact = param.substring(0, spaceIndex);
     String msg = param.substring(spaceIndex + 1);
 
-    int code = sms.sendSMS(contact, msg);
+    int code = sms.sendSMS(contact.c_str(), msg);
 
     uint16_t color = TFT_YELLOW;
     if (code < 0) color = TFT_RED;
@@ -223,7 +225,7 @@ void handle_sms(String args)
   }
   else if (args.startsWith("read"))
   {
-    String msg = comm.pollFromWeb();
+    String msg = comm.pollFromWeb("/get_for_arduino");
 
     if (msg == "ERROR") terminal.println("Error when reading", TFT_RED);
     else if (msg == "NONE") terminal.println("No new messages", TFT_YELLOW);
@@ -248,10 +250,16 @@ void handle_sms(String args)
   {
     String contact = args.substring(5);
     contact.trim();
+    contact.toUpperCase();
 
     if (contact.length() == 0)
     {
       terminal.println("Usage: sms chat <contact>", TFT_RED);
+      return;
+    }
+    if (!sms.checkContact(contact.c_str()))
+    {
+      terminal.println("Error: Contact not found", TFT_RED);
       return;
     }
 
@@ -262,7 +270,7 @@ void handle_sms(String args)
     termSendBar.reinit(0, SCREEN_H - 2 * CHAR_H, SCREEN_W, 2 * CHAR_H);
 
     delete currentChat;
-    currentChat = new Chat(contact, &termInfo, &termMessages, &termSendBar);
+    currentChat = new Chat(contact.c_str(), &termInfo, &termMessages, &termSendBar);
   }
   else
   {

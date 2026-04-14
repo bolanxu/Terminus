@@ -1,39 +1,64 @@
 #include "sms.h"
 #include "globals.h"
+#include "memory.h"
 
-String SMS::getContactNum(const String& name)
+void SMS::updateContacts()
 {
-  for (int i = 0; i < _numOfContacts; i++)
-  {
-    if (name == _contactTable[i].name)
-      return _contactTable[i].phoneNum;
-  }
-  return "not found";
+  _contacts = comm.pollFromWeb("/get_contacts");
+  Serial.println(_contacts);
 }
 
-int SMS::sendSMS(const String& contact, const String& msg)
+bool SMS::checkContact(const char* name)
 {
-  String phoneNum = getContactNum(contact);
+  int lastPos = 0;
+  int commaIndex = _contacts.indexOf('\n');
+  String element;
 
-  if (phoneNum == "not found")
-    return -2;
+  //Serial.println(name);
+  
+  while (commaIndex != -1) {
+    element = _contacts.substring(lastPos, commaIndex);
+    //Serial.println(element);
+    if (element == String(name))
+      return true;
+    
+    lastPos = commaIndex + 1;
+    commaIndex = _contacts.indexOf('\n', lastPos);
+  }
+  
+  element = _contacts.substring(lastPos);
+  //Serial.println(element);
+  if (element == String(name))
+      return true;
+  
+  return false;
+}
 
-  addMessageOut(phoneNum, msg);
-  return comm.postToWeb("/" + phoneNum + "/post_from_arduino", msg);
+int SMS::sendSMS(const char* contact, const String& msg)
+{
+  String contactStr = String(contact);
+  contactStr.toLowerCase();
+  
+  int postResult = comm.postToWeb("/" + contactStr + "/post_from_arduino", msg);
+  if (postResult <= 0)
+    return postResult;
+
+  addMessageOut(contact, msg);
+  return 1;
 }
 
 String SMS::readSMS()
 {
-  String msg = comm.pollFromWeb();
+  String msg = comm.pollFromWeb("/get_for_arduino");
 
-  if (msg != "ERROR" && msg != "NONE")
+  if (msg != "ERROR" && msg.length() > 0 && msg != "NO_MSG")
   {
     for (;;)
     {
-      String contact_name = msg.substring(1, msg.indexOf(']'));
+      String contact = msg.substring(1, msg.indexOf(']'));
       String currentMsg = msg.substring(msg.indexOf(' ') + 1, msg.indexOf('[', 1) - 1);
 
-      addMessageIn(getContactNum(contact_name), contact_name, currentMsg);
+      addMessageIn(contact.c_str(), currentMsg);
 
       if (msg.indexOf('\n') == -1) break;
       msg = msg.substring(msg.indexOf('\n') + 1);
@@ -43,14 +68,14 @@ String SMS::readSMS()
   return msg;
 }
 
-int SMS::addMessageOut(const String& phoneNum, String msg)
+int SMS::addMessageOut(const char* contact, String msg)
 {
   msg.trim();
-  return data.addToFile(phoneNum + ".txt", "ME:" + msg + "\n");
+  return data.addToFile(String(contact) + ".txt", "ME:" + msg + "\n");
 }
 
-int SMS::addMessageIn(const String& phoneNum, const String& contact, String msg)
+int SMS::addMessageIn(const char* contact, String msg)
 {
   msg.trim();
-  return data.addToFile(phoneNum + ".txt", contact + ":" + msg + "\n");
+  return data.addToFile(String(contact) + ".txt", String(contact) + ":" + msg + "\n");
 }

@@ -20,6 +20,12 @@
 #define MAX_LINES (SCREEN_H / CHAR_H)
 #define MAX_COLS  (SCREEN_W / CHAR_W)
 
+//#define TFT_WHITE   0xFF
+//#define TFT_GREEN   0x1C   // was TFT_GREEN
+//#define TFT_RED     0xE0   // was TFT_RED
+//#define TFT_YELLOW  0xFC   // was TFT_YELLOW
+//#define TFT_ORANGE  0xF4   // was TFT_ORANGE
+
 /*  Terminal Settings  */
 #define PROMPT "> "
 

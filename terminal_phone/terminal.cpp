@@ -50,7 +50,7 @@ Terminal::Terminal(int posx, int posy, int maxWidth, int maxHeight)
   _sprite.setTextSize(1);
   _sprite.setTextWrap(false);
 
-  _redraw();
+  redraw();
 }
 
 Terminal::~Terminal()
@@ -83,21 +83,24 @@ void Terminal::reinit(int posx, int posy, int maxWidth, int maxHeight)
   _sprite.setTextSize(1);
   _sprite.setTextWrap(false);
 
-  _redraw();
+  redraw();
 }
 
-void Terminal::_redraw()
+void Terminal::redraw()
 {
-  _sprite.fillSprite(TFT_BLACK);
-
-  for (int i = 0; i < _lineCount; i++)
+  if (_autoRedraw)
   {
-    _sprite.setCursor(0, i * CHAR_H);
-    _sprite.setTextColor(_lineColor[i]);
-    _sprite.print(_lines[i]);
+    _sprite.fillSprite(TFT_BLACK);
+  
+    for (int i = 0; i < _lineCount; i++)
+    {
+      _sprite.setCursor(0, i * CHAR_H);
+      _sprite.setTextColor(_lineColor[i]);
+      _sprite.print(_lines[i]);
+    }
+  
+    _sprite.pushSprite(_posx, _posy);
   }
-
-  _sprite.pushSprite(_posx, _posy);
 }
 
 void Terminal::scrollUp()
@@ -121,7 +124,8 @@ void Terminal::printChar(char c)
     else scrollUp();
 
     _curCol = 0;
-    _redraw();
+    
+    redraw();
     return;
   }
 
@@ -131,7 +135,7 @@ void Terminal::printChar(char c)
     {
       _curCol--;
       _lines[_lineCount - 1][_curCol] = '\0';
-      _redraw();
+      redraw();
     }
     return;
   }
@@ -152,7 +156,7 @@ void Terminal::printChar(char c)
   _lines[_lineCount - 1][_curCol++] = c;
   _lines[_lineCount - 1][_curCol] = '\0';
 
-  _redraw();
+  redraw();
 }
 
 void Terminal::print(char c)
@@ -226,5 +230,5 @@ void Terminal::clear()
 
   _lineCount = 1;
   _curCol = 0;
-  _redraw();
+  redraw();
 }

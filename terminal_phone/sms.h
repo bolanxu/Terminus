@@ -5,32 +5,37 @@
 #include "settings.h"
 #include "communication.h"
 
+/*
 struct Contact
 {
-  String name;
-  String phoneNum;
+  const char* name;
+  const char* phoneNum;
 };
+*/
 
 class SMS
 {
   private:
-    const Contact _contactTable[2] =
-    {
-      {"testuser", "1111111111"},
-      {"dad",      "2222222222"},
-    };
-    int _numOfContacts = sizeof(_contactTable) / sizeof(Contact);
+    //const Contact _contactTable[2] =
+    //{
+    //  {"bohan", "9999999999"},
+    //  {"dad",      "2222222222"},
+    //};
+    //int _numOfContacts = sizeof(_contactTable) / sizeof(Contact);
+
+    String _contacts;
 
   public:
     SMS() {}
 
-    String getContactNum(const String& name);
+    void updateContacts();
+    bool checkContact(const char* name);
 
-    int sendSMS(const String& contact, const String& msg);
+    int sendSMS(const char* contact, const String& msg);
     String readSMS();
 
-    int addMessageOut(const String& phoneNum, String msg);
-    int addMessageIn(const String& phoneNum, const String& contact, String msg);
+    int addMessageOut(const char* phoneNum, String msg);
+    int addMessageIn(const char* contact, String msg);
 };
 
 #endif

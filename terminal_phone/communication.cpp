@@ -21,22 +21,20 @@ int Communication::postToWeb(const String& path, const String& message)
   return returnCode;
 }
 
-String Communication::pollFromWeb()
+String Communication::pollFromWeb(const String& path)
 {
   if (WiFi.status() != WL_CONNECTED)
   {
     return "ERROR";
   }
 
-  _http.begin(_client, "http://" + _serverHostname + "/get_for_arduino");
+  _http.begin(_client, "http://" + _serverHostname + path);
   int httpCode = _http.GET();
 
   String msg;
   if (httpCode > 0)
   {
     msg = _http.getString();
-    if (msg.length() == 0 || msg == "NO_MSG")
-      msg = "NONE";
   }
   else
   {

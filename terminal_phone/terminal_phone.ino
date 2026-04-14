@@ -40,7 +40,7 @@ void setup()
   tft.init();
   tft.setRotation(1);
   tft.writecommand(0x36);
-  tft.writedata(0xA0);
+  tft.writedata(0xA8);
   tft.writecommand(0x20);
   tft.fillScreen(TFT_BLACK);
 
@@ -55,6 +55,8 @@ void setup()
   }
 
   runCommand("wifi connect benji benji2021");
+
+  sms.updateContacts();
 
   Serial.print("Free heap: ");
   Serial.println(ESP.getFreeHeap());
@@ -80,8 +82,9 @@ void loop()
       {
         terminal.println();
         runCommand(inputLine);
+        if (mainState == 1)
+          terminal.print(PROMPT);
         inputLine = "";
-        terminal.print(PROMPT);
       }
       else if (c == '\b' || c == 127)
       {
@@ -99,6 +102,10 @@ void loop()
 
       readChar = false;
     }
+    //if (millis() - lastPollTime >= 5000)
+    //{
+    //  sms.readSMS();
+    //}
   }
   else if (mainState == 2 && currentChat != nullptr)
   {
