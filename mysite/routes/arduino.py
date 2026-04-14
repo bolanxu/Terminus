@@ -57,7 +57,7 @@ def get_for_arduino():
             SELECT m.content, m.id, u.username
             FROM messages m
             JOIN users u ON m.user_id = u.id
-            WHERE m.sender IN ('WEB', 'SMS_QUEUE') AND m.read = 0
+            WHERE m.sender IN ('WEB', 'SMS_QUEUE', 'SMS') AND m.read = 0
             ORDER BY m.id ASC
         """)
         rows = c.fetchall()

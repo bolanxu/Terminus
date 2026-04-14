@@ -102,13 +102,20 @@ def inbound():
     if not from_number or not body:
         return ('', 204)
 
+    from_number = str(from_number).strip()
+
+    print("THE NUMBER IS", from_number)
+
+
     with _db() as conn:
         admin_id = _get_admin_user_id(conn)
 
         # Look up contact
         contact = conn.execute(
-            'SELECT name FROM contacts WHERE phone = ?', (from_number,)
+            'SELECT username FROM users WHERE phone = ?', (from_number,)
         ).fetchone()
+
+        print("CONTACT NAME:",contact['username']);
 
         if contact is None:
             # Totally unknown number — create nameless contact, store for admin
@@ -125,7 +132,7 @@ def inbound():
             )
             conn.commit()
 
-        elif contact['name'] is None:
+        elif contact['username'] is None:
             # Known number but still nameless — store for admin, still no ESP forward
             conn.execute(
                 '''INSERT INTO messages
@@ -137,22 +144,18 @@ def inbound():
 
         else:
             # Named contact — store AND forward to ESP8266
+
+            user = conn.execute(
+                "SELECT id FROM users WHERE username = ?", (str(contact['username']).lower(),)
+            ).fetchone()
+
             conn.execute(
                 '''INSERT INTO messages
                    (user_id, sender, content, timestamp, from_number)
                    VALUES (?, 'SMS', ?, ?, ?)''',
-                (admin_id, body, datetime.datetime.now().isoformat(), from_number)
+                (user['id'], body, datetime.datetime.now().isoformat(), from_number)
             )
-            # Forward: insert a separate unread entry that /get_for_arduino will pick up
-            conn.execute(
-                '''INSERT INTO messages
-                   (user_id, sender, content, timestamp, from_number, read)
-                   VALUES (?, 'SMS_QUEUE', ?, ?, ?, 0)''',
-                (admin_id,
-                 f'[{contact["name"]}]: {body}',
-                 datetime.datetime.now().isoformat(),
-                 from_number)
-            )
+
             conn.commit()
 
     return (
