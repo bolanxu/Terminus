@@ -17,6 +17,8 @@ class Chat
     String _inputText;
     String _currentContact;
 
+    bool _pendingQuit = false;
+
     void updateInfo(const String& status, uint16_t color = TFT_CYAN);
 
   public:
@@ -26,6 +28,8 @@ class Chat
     void displayHistory(const char* contact);
     void updateKey(char c);
     void updateMsgs();
+
+    bool pendingQuit() { return _pendingQuit; }
 };
 
 #endif

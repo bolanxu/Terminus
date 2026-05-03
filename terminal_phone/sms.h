@@ -21,15 +21,18 @@ class SMS
     //  {"bohan", "9999999999"},
     //  {"dad",      "2222222222"},
     //};
-    //int _numOfContacts = sizeof(_contactTable) / sizeof(Contact);
+    int _numOfContacts = 0;
 
     String _contacts;
 
   public:
     SMS() {}
 
+    String getElement(int index);
+    int getContactLen() { return _numOfContacts; }
     void updateContacts();
     bool checkContact(const char* name);
+    String getContacts() { return _contacts; }
 
     int sendSMS(const char* contact, const String& msg);
     String readSMS();

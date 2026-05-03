@@ -2,37 +2,46 @@
 #include "globals.h"
 #include "memory.h"
 
-void SMS::updateContacts()
-{
-  _contacts = comm.pollFromWeb("/get_contacts");
-  Serial.println(_contacts);
+String SMS::getElement(int index) {
+  int found = 0;
+  int strIndex[] = {0, -1};
+  int maxIndex = _contacts.length() - 1;
+
+  for (int i = 0; i <= maxIndex && found <= index; i++) {
+    if (_contacts.charAt(i) == '\n' || i == maxIndex) {
+      found++;
+      strIndex[0] = strIndex[1] + 1;
+      strIndex[1] = (i == maxIndex) ? i + 1 : i;
+    }
+  }
+  return found > index ? _contacts.substring(strIndex[0], strIndex[1]) : "";
 }
 
-bool SMS::checkContact(const char* name)
-{
-  int lastPos = 0;
-  int commaIndex = _contacts.indexOf('\n');
-  String element;
 
-  //Serial.println(name);
-  
-  while (commaIndex != -1) {
-    element = _contacts.substring(lastPos, commaIndex);
-    //Serial.println(element);
-    if (element == String(name))
-      return true;
-    
-    lastPos = commaIndex + 1;
-    commaIndex = _contacts.indexOf('\n', lastPos);
+void SMS::updateContacts() {
+  _contacts = comm.pollFromWeb("/get_contacts");
+  _numOfContacts = 0;
+  if (_contacts.length() == 0)
+    return;
+
+  // Simple count of newlines
+  for (int i = 0; i < _contacts.length(); i++) {
+    if (_contacts.charAt(i) == '\n')
+      _numOfContacts++;
   }
-  
-  element = _contacts.substring(lastPos);
-  //Serial.println(element);
-  if (element == String(name))
+  _numOfContacts++; // Add 1 for the last element
+}
+
+
+bool SMS::checkContact(const char* name) {
+  for (int i = 0; i < _numOfContacts; i++) {
+    if (getElement(i) == String(name)) {
       return true;
-  
+    }
+  }
   return false;
 }
+
 
 int SMS::sendSMS(const char* contact, const String& msg)
 {

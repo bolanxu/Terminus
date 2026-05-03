@@ -67,8 +67,8 @@ void Chat::displayHistory(const char* contact)
       _messages->print(currLine.substring(0, sep + 1));
     else
       _messages->print(currLine.substring(0, sep + 1), TFT_YELLOW);
-    _messages->print(" ");
-    _messages->println(currLine.substring(sep + 1));
+    _messages->print(" ", TFT_YELLOW);
+    _messages->println(currLine.substring(sep + 1), TFT_YELLOW);
   }
 
   _messages->setAutoRedraw(true);
@@ -85,9 +85,8 @@ void Chat::updateKey(char c)
     {
       if (_inputText == "quit")
       {
-        mainState = 1;
-        terminal.print(PROMPT);
-        terminal.redraw();
+        _inputText = "";
+        _pendingQuit = true;
         return;
       }
 

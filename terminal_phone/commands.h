@@ -22,6 +22,7 @@ void handle_echo(String args);
 void handle_quote(String args);
 void handle_wifi(String args);
 void handle_sms(String args);
+void handle_heap(String args);
 
 extern Command commandTable[];
 extern String codeMessages[];
