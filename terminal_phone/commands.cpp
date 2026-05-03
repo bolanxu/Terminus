@@ -12,6 +12,7 @@ Command commandTable[] =
   {"quote", handle_quote},
   {"wifi",  handle_wifi},
   {"sms",   handle_sms},
+  {"heap", handle_heap},
 };
 
 String codeMessages[] =
@@ -49,7 +50,7 @@ void handle_help(String args)
 {
   terminal.println("Commands:");
   terminal.println("  help  clear  echo  quote");
-  terminal.println("  wifi  sms");
+  terminal.println("  wifi  sms    heap");
 }
 
 void handle_clear(String args)
@@ -116,8 +117,8 @@ void handle_wifi(String args)
         uint16_t signalColor = (WiFi.RSSI(i) > -60) ? TFT_GREEN :
                                (WiFi.RSSI(i) > -80) ? TFT_ORANGE : TFT_RED;
 
-        terminal.print(String(i));
-        terminal.print(": ");
+        terminal.print(String(i), signalColor);
+        terminal.print(": ", signalColor);
         terminal.print(WiFi.SSID(i), signalColor);
         terminal.print(" (", signalColor);
         terminal.print(String(WiFi.RSSI(i)), signalColor);
@@ -201,7 +202,17 @@ void handle_wifi(String args)
 
 void handle_sms(String args)
 {
-  if (args.startsWith("send"))
+  if (args.startsWith("contacts"))
+  {
+    sms.updateContacts();
+    int contactLen = sms.getContactLen();
+    for (int i=0; i<contactLen; i++)
+    {
+      terminal.println(String(i)+": "+sms.getElement(i), TFT_YELLOW);
+    }
+  }
+  
+  else if (args.startsWith("send"))
   {
     String param = args.substring(5);
     int spaceIndex = param.indexOf(' ');
@@ -218,8 +229,10 @@ void handle_sms(String args)
     int code = sms.sendSMS(contact.c_str(), msg);
 
     uint16_t color = TFT_YELLOW;
-    if (code < 0) color = TFT_RED;
-    else if (code > 0) color = TFT_GREEN;
+    if (code < 0)
+      color = TFT_RED;
+    else if (code > 0)
+      color = TFT_GREEN;
 
     terminal.println(codeMessages[code + 2], color);
   }
@@ -250,6 +263,24 @@ void handle_sms(String args)
   {
     String contact = args.substring(5);
     contact.trim();
+
+    sms.updateContacts();
+
+    bool isNum = true;
+
+    for (int i = 0; i < contact.length(); i++) 
+    {
+      if (!isDigit(contact.charAt(i))) 
+      {
+        isNum = false;
+      }
+    }
+
+    if (isNum)
+    {
+      contact = sms.getElement(contact.toInt());
+    }
+
     contact.toUpperCase();
 
     if (contact.length() == 0)
@@ -265,9 +296,9 @@ void handle_sms(String args)
 
     mainState = 2;
 
-    termInfo.reinit(0, 0, SCREEN_W, CHAR_H);
-    termMessages.reinit(0, CHAR_H, SCREEN_W, SCREEN_H - 3 * CHAR_H);
-    termSendBar.reinit(0, SCREEN_H - 2 * CHAR_H, SCREEN_W, 2 * CHAR_H);
+    termInfo.reinit(0, 0, SCREEN_W, CHAR_H, false);
+    termMessages.reinit(0, CHAR_H, SCREEN_W, SCREEN_H - 3 * CHAR_H, false);
+    termSendBar.reinit(0, SCREEN_H - 2 * CHAR_H, SCREEN_W, 2 * CHAR_H, true);
 
     delete currentChat;
     currentChat = new Chat(contact.c_str(), &termInfo, &termMessages, &termSendBar);
@@ -276,4 +307,10 @@ void handle_sms(String args)
   {
     terminal.println("Usage: sms [send|read|chat] ...", TFT_RED);
   }
+}
+
+void handle_heap(String args)
+{
+  terminal.print("Heap: ", TFT_YELLOW);
+  terminal.println(String(ESP.getFreeHeap()), TFT_YELLOW);
 }

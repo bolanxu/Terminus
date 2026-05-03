@@ -32,7 +32,7 @@ void Terminal::freeBuffers()
 }
 
 Terminal::Terminal(int posx, int posy, int maxWidth, int maxHeight)
-: _sprite(&tft), _lines(nullptr), _lineColor(nullptr),
+: _lines(nullptr), _lineColor(nullptr),
   _lineCount(1), _curCol(0), _textColor(TFT_WHITE)
 {
   _posx = posx;
@@ -44,24 +44,19 @@ Terminal::Terminal(int posx, int posy, int maxWidth, int maxHeight)
   _maxChar  = _maxWidth  / CHAR_W;
 
   allocBuffers();
-
-  _sprite.setColorDepth(8);
-  _sprite.createSprite(_maxWidth, _maxHeight);
-  _sprite.setTextSize(1);
-  _sprite.setTextWrap(false);
-
   redraw();
 }
 
 Terminal::~Terminal()
 {
-  _sprite.deleteSprite();
   freeBuffers();
 }
 
-void Terminal::reinit(int posx, int posy, int maxWidth, int maxHeight)
+void Terminal::reinit(int posx, int posy, int maxWidth, int maxHeight, bool cursor_en)
 {
-  _sprite.deleteSprite();
+  // erase old region before changing dimensions
+  tft.fillRect(_posx, _posy, _maxWidth, _maxHeight, TFT_BLACK);
+
   freeBuffers();
 
   _posx = posx;
@@ -78,28 +73,81 @@ void Terminal::reinit(int posx, int posy, int maxWidth, int maxHeight)
 
   allocBuffers();
 
-  _sprite.setColorDepth(8);
-  _sprite.createSprite(_maxWidth, _maxHeight);
-  _sprite.setTextSize(1);
-  _sprite.setTextWrap(false);
-
-  redraw();
+  setCursorEnabled(cursor_en);
+  // setCursorEnabled calls redraw() internally
 }
 
 void Terminal::redraw()
 {
-  if (_autoRedraw)
+  if (!_autoRedraw) return;
+
+  // clear region
+  tft.fillRect(_posx, _posy, _maxWidth, _maxHeight, TFT_BLACK);
+
+  tft.setTextSize(1);
+  tft.setTextWrap(false);
+
+  for (int i = 0; i < _lineCount; i++)
   {
-    _sprite.fillSprite(TFT_BLACK);
-  
-    for (int i = 0; i < _lineCount; i++)
+    tft.setCursor(_posx, _posy + i * CHAR_H);
+    tft.setTextColor(_lineColor[i]);
+    tft.print(_lines[i]);
+  }
+
+  if (_cursorEnabled && _cursorVisible)
+  {
+    int col = min(_curCol, _maxChar - 1);
+    int cursorX = _posx + col * CHAR_W;
+    int cursorY = _posy + (_lineCount - 1) * CHAR_H;
+    tft.fillRect(cursorX, cursorY, CHAR_W, CHAR_H, TFT_BLACK);
+    char ch = _lines[_lineCount - 1][col];
+    if (ch != '\0')
     {
-      _sprite.setCursor(0, i * CHAR_H);
-      _sprite.setTextColor(_lineColor[i]);
-      _sprite.print(_lines[i]);
+      tft.setCursor(cursorX, cursorY);
+      tft.setTextColor(_lineColor[_lineCount - 1]);
+      tft.setTextSize(1);
+      tft.setTextWrap(false);
+      tft.print(ch);
     }
-  
-    _sprite.pushSprite(_posx, _posy);
+    _cursorVisible = false;
+  }
+}
+
+void Terminal::setCursorEnabled(bool enabled)
+{
+  _cursorEnabled = enabled;
+  _cursorVisible = false;
+  redraw();
+}
+
+void Terminal::tickCursor()
+{
+  if (!_cursorEnabled) return;
+
+  _cursorVisible = !_cursorVisible;
+
+  // cursor draws AT _curCol (the next write position)
+  int cursorX = _posx + _curCol * CHAR_W;
+  int cursorY = _posy + (_lineCount - 1) * CHAR_H;
+
+  if (_cursorVisible)
+  {
+    tft.fillRect(cursorX, cursorY, CHAR_W, CHAR_H, TFT_WHITE);
+  }
+  else
+  {
+    tft.fillRect(cursorX, cursorY, CHAR_W, CHAR_H, TFT_BLACK);
+
+    // restore character AT _curCol if one exists
+    char ch = _lines[_lineCount - 1][_curCol];
+    if (ch != '\0')
+    {
+      tft.setCursor(cursorX, cursorY);
+      tft.setTextColor(_lineColor[_lineCount - 1]);
+      tft.setTextSize(1);
+      tft.setTextWrap(false);
+      tft.print(ch);
+    }
   }
 }
 
@@ -118,21 +166,45 @@ void Terminal::scrollUp()
 
 void Terminal::printChar(char c)
 {
+  if (_cursorEnabled && _cursorVisible)
+  {
+    int cursorX = _posx + _curCol * CHAR_W;
+    int cursorY = _posy + (_lineCount - 1) * CHAR_H;
+    tft.fillRect(cursorX, cursorY, CHAR_W, CHAR_H, TFT_BLACK);
+    _cursorVisible = false;
+  }
   if (c == '\n' || c == '\r')
   {
     if (_lineCount < _maxLines) _lineCount++;
     else scrollUp();
 
     _curCol = 0;
-    
+
     redraw();
     return;
   }
 
-  if (c == '\b' || c == 127)
+  else if (c == '\b' || c == 127)
   {
     if (_curCol > 0)
     {
+      _curCol--;
+      _lines[_lineCount - 1][_curCol] = '\0';
+      tft.fillRect(
+        _posx + _curCol * CHAR_W,
+        _posy + (_lineCount - 1) * CHAR_H,
+        CHAR_W, CHAR_H,
+        TFT_BLACK
+      );
+    }
+    else if (_lineCount > 1)
+    {
+      // erase current empty line
+      _lines[_lineCount - 1][0] = '\0';
+      _lineCount--;
+      // move to end of previous line
+      _curCol = strlen(_lines[_lineCount - 1]);
+      // erase last char of previous line
       _curCol--;
       _lines[_lineCount - 1][_curCol] = '\0';
       redraw();
@@ -148,6 +220,7 @@ void Terminal::printChar(char c)
     _curCol = 0;
     _lines[_lineCount - 1][0] = '\0';
     _lineColor[_lineCount - 1] = _textColor;
+
   }
 
   if (_curCol == 0)
@@ -156,7 +229,18 @@ void Terminal::printChar(char c)
   _lines[_lineCount - 1][_curCol++] = c;
   _lines[_lineCount - 1][_curCol] = '\0';
 
-  redraw();
+  // draw just the new character directly
+  if (_autoRedraw)
+  {
+    tft.setCursor(
+      _posx + (_curCol - 1) * CHAR_W,
+      _posy + (_lineCount - 1) * CHAR_H
+    );
+    tft.setTextColor(_textColor);
+    tft.setTextSize(1);
+    tft.setTextWrap(false);
+    tft.print(c);
+  }
 }
 
 void Terminal::print(char c)

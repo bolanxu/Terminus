@@ -8,10 +8,8 @@
 class Terminal
 {
   private:
-    TFT_eSprite _sprite;
-
-    char** _lines;           // [_maxLines][_maxChar+1]
-    uint16_t* _lineColor;    // one color per line
+    char** _lines;
+    uint16_t* _lineColor;
 
     int _lineCount;
     int _curCol;
@@ -27,6 +25,9 @@ class Terminal
 
     bool _autoRedraw = true;
 
+    bool _cursorVisible = false;
+    bool _cursorEnabled = false;
+
     void allocBuffers();
     void freeBuffers();
     void scrollUp();
@@ -36,10 +37,13 @@ class Terminal
     ~Terminal();
 
     void setAutoRedraw(bool enabled) { _autoRedraw = enabled; }
-  
+
     void redraw();
-    
-    void reinit(int posx, int posy, int maxWidth, int maxHeight);
+
+    void setCursorEnabled(bool enabled);
+    void tickCursor();
+
+    void reinit(int posx, int posy, int maxWidth, int maxHeight, bool cursor_en);
 
     void printChar(char c);
 

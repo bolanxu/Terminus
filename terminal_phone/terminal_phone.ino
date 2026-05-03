@@ -29,6 +29,10 @@ int mainState = 1;
 bool readChar = false;
 unsigned long lastPollTime = 0;
 
+#define CURSOR_INTERVAL 500  // ms
+
+unsigned long lastCursorTick = 0;
+
 void setup()
 {
   Serial.begin(9600);
@@ -44,7 +48,8 @@ void setup()
   tft.writecommand(0x20);
   tft.fillScreen(TFT_BLACK);
 
-  terminal.println("Terminal Phone v1.0");
+  terminal.setCursorEnabled(true);
+  terminal.println("TERMINUS v1.0");
   terminal.println("-------------------");
 
   if (!LittleFS.begin())
@@ -66,6 +71,10 @@ void setup()
 
 void loop()
 {
+  //Serial.println(ESP.getFreeHeap());
+  
+  unsigned long now = millis();
+  
   char c = 0;
 
   if (Serial.available())
@@ -102,19 +111,36 @@ void loop()
 
       readChar = false;
     }
-    //if (millis() - lastPollTime >= 5000)
-    //{
-    //  sms.readSMS();
-    //}
+    if (now - lastCursorTick >= CURSOR_INTERVAL)
+    {
+      lastCursorTick = now;
+      terminal.tickCursor();
+    }
   }
   else if (mainState == 2 && currentChat != nullptr)
   {
+    if (currentChat->pendingQuit())
+    {
+      mainState = 1;
+      delete currentChat;
+      currentChat = nullptr;
+      terminal.setCursorEnabled(true);
+      terminal.print(PROMPT);
+      terminal.redraw();
+    }
+
     if (readChar)
     {
       currentChat->updateKey(c);
       readChar = false;
     }
 
+    if (now - lastCursorTick >= CURSOR_INTERVAL)
+    {
+      lastCursorTick = now;
+      termSendBar.tickCursor();
+    }
+    
     if (millis() - lastPollTime >= 5000)
     {
       lastPollTime = millis();
