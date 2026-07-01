@@ -1,4 +1,4 @@
-# Terminal-Style Cellular Device
+# Terminus
 
 A DIY, terminal-first cellular communication device designed as a **personal network terminal** rather than a modern smartphone.
 
