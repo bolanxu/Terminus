@@ -4,12 +4,12 @@
 /*  Network Settings  */
 
 #ifndef STASSID
-#define STASSID "benji"
-#define STAPSK "benji2021"
+#define STASSID "wifi_ssid"
+#define STAPSK "wifi_pwd"
 #endif
 
 #define QUOTE_HOST "djxmmx.net"
-#define SERVER_HOSTNAME "bolanxu.pythonanywhere.com"
+#define SERVER_HOSTNAME "hostname"
 
 /*  TFT Settings  */
 
